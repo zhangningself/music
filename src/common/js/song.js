@@ -13,18 +13,24 @@ export default class Song {
     this.url = url
   }
   getLyric() {
-    getLyric(this.mid).then((res) => {
-      var arr, arr1, data
-      if (typeof res === 'string') {
-        arr = res.split('(')
-        arr1 = arr[1].split(')')
-      }
-      data = JSON.parse(arr1[0])
-      if (data.code === ERR_OK) {
-        console.log(Base64)
-        this.lyric = Base64.decode(data.lyric)
-        console.log(this.lyric)
-      }
+    if (this.lyric) {
+      return Promise.resolve(this.lyric)
+    }
+    return new Promise((resolve, reject) => {
+      getLyric(this.mid).then((res) => {
+        var arr, arr1, data
+        if (typeof res === 'string') {
+          arr = res.split('(')
+          arr1 = arr[1].split(')')
+        }
+        data = JSON.parse(arr1[0])
+        if (data.retcode === ERR_OK) {
+          this.lyric = Base64.decode(data.lyric)
+          resolve(this.lyric)
+        } else {
+          reject('no lyric')
+        }
+      })
     })
   }
 }
