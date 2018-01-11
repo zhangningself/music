@@ -34,8 +34,8 @@ export const randomPlay = function ({commit}, {list}) {
 }
 
 export const insertSong = function ({commit, state}, song) {
-  let playlist = state.playlist.slice()
-  let sequenceList = state.sequenceList.slice()
+  let playlist = state.playlist.slice() // 加一个slice() 表示操作副本 避免直接操作state里面的数据会报错
+  let sequenceList = state.sequenceList.slice() // 加一个slice() 表示操作副本
   let currentIndex = state.currentIndex
   // 记录当前歌曲
   let currentSong = playlist[currentIndex]
