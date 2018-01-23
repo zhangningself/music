@@ -2,7 +2,9 @@
   <scroll :data="result"
           class="suggest"
           :pullup="pullup"
+          :beforScroll="beforScroll"
           @scrollToEnd="searchMore"
+          @beforeScroll="listScroll"
           ref="suggest">
     <ul class="suggest-list">
       <li class="suggest-item" @click="selectItem(item)" v-for="item in result">
@@ -13,8 +15,11 @@
           <p class="text" v-html="getDispalyName(item)"></p>
         </div>
       </li>
+      <loading v-show="hasMore" title=""></loading>
     </ul>
-    <loading v-show="hasMore" title=""></loading>
+    <div class="no-result-wrapper" v-show="!hasMore && !result.length">
+      <no-result title="抱歉，暂无搜索结果"></no-result>
+    </div>
   </scroll>
 </template>
 
@@ -24,8 +29,10 @@
   import {createSong} from 'common/js/song'
   import Scroll from 'base/scroll/scroll'
   import loading from 'base/loading/loading'
+  import NoResult from 'base/no-result/no-result'
   import Singer from 'common/js/singer'
   import {mapMutations, mapActions} from 'vuex'
+
   const TYPE_SINGER = 'singer'
   const perpage = 30
   export default {
@@ -34,7 +41,8 @@
         page: 1,
         result: [],
         pullup: true,
-        hasMore: true
+        hasMore: true,
+        beforScroll: true
       }
     },
     props: {
@@ -59,6 +67,9 @@
           }
         })
       },
+      listScroll() {
+        this.$emit('listScroll')
+      },
       _checkMore(data) {
         const song = data.song
         if (!song.list.length || (song.curnum + song.curpage * perpage) >= song.totalnum) {
@@ -78,6 +89,9 @@
         } else {
           return `${item.name}-${item.singer}`
         }
+      },
+      refreshSuggest() {
+        this.$refs.suggest.refresh()
       },
       _genResult(data) {
         let ret = []
@@ -102,12 +116,12 @@
         }
         this.page++
         console.log(this.hasMore)
-          search(this.query, this.page, this.showSinger, perpage).then((res) => {
-            if (res.code === ERR_OK) {
-              this.result = this.result.concat(this._genResult(res.data))
-              this._checkMore(res.data)
-            }
-          })
+        search(this.query, this.page, this.showSinger, perpage).then((res) => {
+          if (res.code === ERR_OK) {
+            this.result = this.result.concat(this._genResult(res.data))
+            this._checkMore(res.data)
+          }
+        })
       },
       selectItem(item) {
         if (item.type === TYPE_SINGER) {
@@ -122,6 +136,7 @@
         } else {
           this.insertSong(item)
         }
+        this.$emit('select')
       },
       ...mapMutations({
         setSinger: 'SET_SINGER'
@@ -132,12 +147,13 @@
     },
     watch: {
       query() {
-          this.search()
+        this.search()
       }
     },
     components: {
       Scroll,
-      loading
+      loading,
+      NoResult
     }
   }
 </script>

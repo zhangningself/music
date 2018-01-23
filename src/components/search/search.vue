@@ -1,23 +1,35 @@
 <template>
   <div class="search">
     <div class="search-box-wrapper">
-      <search-box ref="seachBox" @query ="onQueryChange"></search-box>
+      <search-box ref="searchBox" @query="onQueryChange"></search-box>
     </div>
-    <div class="shortcut-wrapper" v-show ="!query">
-      <div class="shortcut">
-        <div class="hot-key">
-          <h1 class="title">热门搜索</h1>
-          <ul>
-            <li @click="addQuery(item.k)" class="item" v-for="item in hotKey">
+    <div ref="shortcutWrapper" class="shortcut-wrapper" v-show="!query">
+      <scroll :refreshDelay="refreshDelay" ref="shortcut" class="shortcut" :data="shortcut">
+        <div>
+          <div class="hot-key">
+            <h1 class="title">热门搜索</h1>
+            <ul>
+              <li @click="addQuery(item.k)" class="item" v-for="item in hotKey">
                 <span>{{item.k}}</span>
-            </li>
-          </ul>
+              </li>
+            </ul>
+          </div>
+          <div class="search-history" v-show="searchHistory.length">
+            <h1 class="title">
+              <span class="text">搜索历史</span>
+              <span @click="showConfirm" class="clear">
+                <i class="icon-clear"></i>
+              </span>
+            </h1>
+            <search-list @delete="deleteSearchHistory" @select="addQuery" :searches="searchHistory"></search-list>
+          </div>
         </div>
-      </div>
+      </scroll>
     </div>
-    <div class="search-result" v-show ="query">
-      <suggest :query="query"></suggest>
+    <div class="search-result" v-show="query" ref="searchResult">
+      <suggest @listScroll="blurInput" @select="saveSearch" ref="suggest" :query="query"></suggest>
     </div>
+    <confirm ref="confirm" @confirm="clearSearchHistory" text="是否清空所有搜索历史" confirmBtnText="清空"></confirm>
     <router-view></router-view>
   </div>
 </template>
@@ -27,10 +39,20 @@
   import {getHotKey} from 'api/search.js'
   import {ERR_OK} from 'api/config'
   import Suggest from 'components/suggest/suggest'
+  import searchList from 'base/search-list/search-list'
+  import Confirm from 'base/confirm/confirm'
+  import Scroll from 'base/scroll/scroll'
+  import {mapActions, mapGetters} from 'vuex'
+  import {playlistMixin, searchMixin} from 'common/js/mixin'
+
   export default {
+    mixins: [playlistMixin, searchMixin],
     components: {
       SearchBox,
-      Suggest
+      Suggest,
+      searchList,
+      Confirm,
+      Scroll
     },
     data() {
       return {
@@ -38,10 +60,27 @@
         query: ''
       }
     },
+    computed: {
+      shortcut() {
+        return this.hotKey.concat(this.searchHistory)
+      },
+      ...mapGetters([
+        'searchHistory'
+      ])
+    },
     created() {
       this._getHotKey()
     },
     methods: {
+      handlePlaylist(playlist) {
+        console.log(playlist)
+        const bottom = playlist.length > 0 ? '60px' : ''
+        console.log(this.$refs.shortcutWrapper.style.bottom)
+        this.$refs.shortcutWrapper.style.bottom = bottom
+        this.$refs.shortcut.refresh()
+        this.$refs.searchResult.style.bottom = bottom
+        this.$refs.suggest.refreshSuggest()
+      },
       _getHotKey() {
         getHotKey().then((res) => {
           if (res.code === ERR_OK) {
@@ -49,11 +88,27 @@
           }
         })
       },
-      addQuery(key) {
-        this.$refs.seachBox.setQuery(key)
+      deleteAll() {
+        this.clearSearchHistory()
       },
-      onQueryChange(query) {
-        this.query = query
+      showConfirm() {
+         this.$refs.confirm.show()
+      },
+      deleteOne(item) {
+        console.log(item)
+        this.deleteSearchHistory(item)
+      },
+      ...mapActions([
+        'clearSearchHistory'
+      ])
+    },
+    watch: {
+      query(newQuery) {
+        if (!newQuery) {
+          setTimeout(() => {
+            this.$refs.shortcut.refresh()
+          })
+        }
       }
     }
   }

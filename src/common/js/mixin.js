@@ -110,6 +110,7 @@ export const searchMixin = {
       this.$refs.searchBox.blur()
     },
     addQuery(query) {
+      console.log(this.$refs.searchBox)
       this.$refs.searchBox.setQuery(query)
     },
     saveSearch() {

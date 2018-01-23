@@ -25,6 +25,7 @@ module.exports = {
     'eol-last':0,
     'no-tabs':0,
     'indent':0,
-    'space-before-function-paren':0
+    'space-before-function-paren':0,
+    'prefer-promise-reject-errors':0
   }
 }
